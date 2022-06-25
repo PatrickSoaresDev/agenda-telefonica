@@ -2,16 +2,20 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css"
+    />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
       integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="eventos.css" />
     <title>Agenda Telefônica</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   </head>
   <body>
     <div class="container mb-3 mt-3">
@@ -38,15 +42,43 @@
           </div>
         </div>
       </nav>
+      <!-- HEADER MAIN -->
       <main class="mb-3 mt-3">
-        <button
-          type="button"
-          class="btn btn-primary mb-1"
-          data-toggle="modal"
-          data-target="#myModal"
-        >
-          Inserir Evento
-        </button>
+        <div class="buttons-header-main">
+          <button
+            type="button"
+            class="btn btn-blue-gray mb-1"
+            data-toggle="modal"
+            data-target="#myModal"
+          >
+            Inserir Evento
+          </button>
+          <div class="input-group w20 search">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Pesquisar evento"
+              aria-label="Input group example"
+              aria-describedby="basic-addon1"
+              onchange="pesquisar()"
+              id="pesquisa"
+            />
+            <span class="input-group-text" id="basic-addon1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                class="bi bi-search"
+                viewBox="0 0 16 16"
+              >
+                <path
+                  d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"
+                ></path>
+              </svg>
+            </span>
+          </div>
+        </div>
         <!-- Tabela -->
         <table
           class="table table-striped table-bordered mydatatable"
@@ -62,6 +94,10 @@
           </thead>
           <tbody></tbody>
         </table>
+        <!-- Paginação -->
+        <div>
+          <ul class="pagination" id="paginacao"></ul>
+        </div>
         <!-- Modal -->
         <div
           class="modal fade"
@@ -74,9 +110,7 @@
           <div class="modal-dialog" role="document">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">
-                  Inserir Evento
-                </h5>
+                <h5 class="modal-title" id="exampleModalLabel"></h5>
                 <button
                   type="button"
                   class="close"
@@ -117,6 +151,101 @@
                   type="button"
                   class="btn btn-primary btn-sm"
                   id="salvar"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Modal Delete -->
+        <div
+          id="modal-delete"
+          class="modal fade bd-example-modal-sm"
+          tabindex="-1"
+          role="dialog"
+          aria-labelledby="mySmallModalLabel"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+              <div>
+                <p id="p-delete">
+                  Essa ação não pode ser defeita <br />
+                  tem certeza que deseja excluir?
+                </p>
+              </div>
+              <div class="buttons">
+                <button id="cancelar-delete" class="btn btn-secondary btn-sm">
+                  Cancelar
+                </button>
+                <button id="continuar-delete" class="btn btn-danger btn-sm">
+                  Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Modal Contatos -->
+        <div
+          class="modal fade"
+          id="modal-contato"
+          tabindex="-1"
+          role="dialog"
+          aria-labelledby="modalContatos"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h4 id="tituloModalContatos"></h4>
+                <button
+                  type="button"
+                  class="close"
+                  data-dismiss="modal"
+                  aria-label="Close"
+                >
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div id="alert"></div>
+              <div id="gerenciamento-participante">
+                <h5 class="modal-title">Gerencimento de Participantes</h5>
+              </div>
+              <div class="modal-body">
+                <div>
+                  <select id="contatos" class="input-group custom-select">
+                    <option value="" selected>Selecionar contato</option>
+                  </select>
+                </div>
+                <div id="div-contatos">
+                  <table
+                    class="table table-striped table-bordered mydatatable table-contato"
+                    style="width: 100%"
+                    id="contatosEventos"
+                  >
+                    <thead>
+                      <tr>
+                        <th width="100%">Nome</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-dismiss="modal"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  onclick="salvarEdicaoEventos()"
                 >
                   Salvar
                 </button>

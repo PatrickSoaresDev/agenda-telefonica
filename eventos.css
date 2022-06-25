@@ -1,9 +1,57 @@
 .btn-custom {
-  padding: 1px 15px 3px 2px;
-  border-radius: 50px;
+  background-color: #949491;
 }
 
-.btn-icon {
-  padding: 8px;
-  background: #ffffff;
+.btn-edit {
+  background-color: #e5e58d;
+}
+
+.btn-exclude {
+  background-color: #ff6e6e;
+  color: #000;
+}
+
+#button-action {
+  display: flex;
+  justify-content: space-around;
+}
+
+.buttons-header-main {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1em;
+  margin-top: 2em;
+}
+.search {
+  max-width: 20em;
+}
+
+.active a {
+  background-color: #4a4a4a !important;
+}
+
+#p-delete {
+  text-align: center;
+  padding: 1rem;
+  font-size: 18px;
+}
+
+.buttons {
+  display: flex;
+  justify-content: space-evenly;
+  margin-bottom: 1rem;
+}
+
+#gerenciamento-participante {
+  text-align: center;
+}
+
+#div-contatos {
+  margin-top: 2em;
+}
+
+.table-contato td button {
+  height: 2rem;
+  padding: auto;
+  padding-bottom: 1em;
 }
