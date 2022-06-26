@@ -1,3 +1,10 @@
+.nav {
+  font-size: 1.5em;
+}
+.navbar-brand {
+  font-size: 1.5em;
+}
+
 .btn-custom {
   background-color: #949491;
 }
@@ -42,16 +49,28 @@
   margin-bottom: 1rem;
 }
 
-#gerenciamento-participante {
+#participant-manager {
   text-align: center;
 }
 
-#div-contatos {
+#contacts-div {
   margin-top: 2em;
 }
 
-.table-contato td button {
+.contact-table td button {
   height: 2rem;
   padding: auto;
   padding-bottom: 1em;
+}
+.p-no-table {
+  text-align: center;
+  font-size: 20px;
+  margin-top: 2em;
+}
+#events th {
+  font-size: 1.3em;
+}
+
+#events td {
+  font-size: 1.1em;
 }

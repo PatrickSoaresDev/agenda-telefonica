@@ -42,7 +42,7 @@ buscarContatos = async () => {
 const salvarCliente = async () => {
   if (validarCampos()) {
     const cliente = {
-      nome: document.getElementById('nome').value,
+      name: document.getElementById('name').value,
       email: document.getElementById('email').value,
       telefone: document.getElementById('celular').value,
     }
@@ -64,10 +64,10 @@ const salvarCliente = async () => {
 editarCliente = async (idx) => {
   const contatos = await buscarContatos()
   const contato = contatos.filter((el) => el.id == idx)[0]
-  let nome = document.getElementById('nome')
+  let name = document.getElementById('name')
   let email = document.getElementById('email')
   let telefone = document.getElementById('celular')
-  nome.value = contato.nome
+  name.value = contato.name
   email.value = contato.email
   telefone.value = contato.telefone
   editar = true
@@ -97,7 +97,7 @@ const botaoTabela = async (e) => {
 }
 
 // Eventos
-document.getElementById('salvar').addEventListener('click', salvarCliente)
+document.getElementById('save').addEventListener('click', salvarCliente)
 
 document.querySelector('#contatos>tbody').addEventListener('click', botaoTabela)
 

@@ -1,292 +1,385 @@
-let editar = false
+// States
+let edit = false
 let id = null
-let title = 'teste'
 let idDelete = null
-let listaContatos = []
-let participantes = []
+let contactList = []
+let participants = []
 let idEdit = null
+events = []
 
 // api comunication
-const apiEventos = 'http://localhost:3000/eventos'
-const apiContatos = 'http://localhost:3000/contatos'
-//Tabela
+const eventApi = 'http://localhost:3000/eventos'
+const contactApi = 'http://localhost:3000/contatos'
 
-const gerarTabela = async (page, paginar, pesquisa) => {
-  const dados = await buscarEventos(page, pesquisa)
-  limparTabela()
-  if (paginar) {
-    gerarPagination(dados.count)
+//table
+const generateTable = async (page, pagination, search) => {
+  const data = await getEvents(page, search)
+  events = data.rows
+  clearTable()
+  if (pagination) {
+    generatePagination(data.count)
   }
-  dados.rows.forEach(criarNovaLinha)
+  await createTable()
+  data.rows.forEach(createNewLineTable)
 }
 
-const limparTabela = () => {
-  const linhas = document.querySelectorAll('#eventos>tbody tr')
-  linhas.forEach((linha) => linha.parentNode.removeChild(linha))
+const clearTable = () => {
+  const lines = document.querySelectorAll('#events>tbody tr')
+  lines.forEach((line) => line.parentNode.removeChild(line))
 }
 
-criarNovaLinha = (evento) => {
-  const novaLinha = document.createElement('tr')
-  novaLinha.innerHTML = `
-        <td>${evento.nome_evento}</td>
-        <td>${formataData(evento.data_evento)}</td>
+const createTable = async () => {
+  let div = document.getElementById('table-div')
+  let p_no_table = document.getElementById('p-no-table')
+  let table = document.getElementById('events')
+  if (events.length && !document.body.contains(table)) {
+    if (document.body.contains(p_no_table)) p_no_table.remove()
+    const table = document.createElement('table')
+    table.id = 'events'
+    table.classList.add(
+      'table',
+      'table-striped',
+      'table-bordered',
+      'mydatatable'
+    )
+
+    table.innerHTML = `<thead>
+    <tr>
+    <th width="60%">Evento</th>
+    <th>Data e Hora</th>
+    <th>Ação</th>
+    </tr>
+    </thead>
+    <tbody></tbody>`
+
+    div.appendChild(table)
+    document
+      .querySelector('#events>tbody')
+      .addEventListener('click', tableButton)
+  } else if (!events.length) {
+    if (document.body.contains(table)) table.remove()
+    const p = document.createElement('p')
+    p.id = 'p-no-table'
+    p.classList.add('p-no-table')
+    p.innerHTML = 'Nenhum evento cadastrado'
+    div.appendChild(p)
+  } else return
+}
+
+createNewLineTable = (event) => {
+  const newLine = document.createElement('tr')
+  newLine.innerHTML = `
+        <td>${event.nome_evento}</td>
+        <td>${dateFormat(event.data_evento)}</td>
         <td id="button-action">
-            <button class="btn btn-custom" title="Participantes" onClick="gerenciarParticipantes(${
-              evento.id
+            <button class="btn btn-custom" title="Participantes" onClick="participantsManager(${
+              event.id
             })"><i class="bi bi-person-plus-fill"></i></button>      
             <button type="button" class="btn btn-edit" id="edit-${
-              evento.id
-            }"  title="Editar Evento" onClick="editarEvento(${
-    evento.id
+              event.id
+            }"  title="Editar Evento" onClick="eventEdit(${
+    event.id
   })"><i class="bi bi-pencil-square"></i></button>                    
             <button type="button" class="btn btn-exclude" id="delete-${
-              evento.id
-            }" title="Excluir Evento" onClick="abrirModalDelete(${
-    evento.id
+              event.id
+            }" title="Excluir Evento" onClick="openModalDelete(${
+    event.id
   })"><i class="bi bi-trash"></i></button>          
         </td>
     `
-  document.querySelector('#eventos>tbody').appendChild(novaLinha)
+  document.querySelector('#events>tbody').appendChild(newLine)
 }
 
-buscarEventos = async (page, pesquisa = '') => {
+const tableButton = async (e) => {
+  if (e.target.type == 'button') {
+    const [action, index] = e.target.id.split('-')
+    if (action == 'edit') {
+      eventEdit(index)
+    }
+  }
+}
+
+// Api requisition
+getEvent = async (id) => {
+  return await axios.get(eventApi + '/' + id).then((res) => res.data)
+}
+
+getEvents = async (page, search) => {
   let limit = 10
   return await axios
-    .get(apiEventos + '/paginacao', { params: { limit, page, pesquisa } })
-    .then((res) => res.data)
+    .get(eventApi + '/pagination', { params: { limit, page, search } })
+    .then((res) => {
+      return res.data
+    })
     .catch((err) => {
       console.log(err)
     })
 }
 
-const salvarEvento = async () => {
-  if (editar) {
-    evento = { nome_evento: document.getElementById('nome').value }
-    await axios.put(apiEventos + '/' + id, evento).then(async () => {
-      await gerarTabela(1, true)
+const saveEvent = async () => {
+  if (edit) {
+    let event = { nome_evento: document.getElementById('name').value }
+    await axios.put(eventApi + '/' + id, event).then(async () => {
+      await generateTable(1, true)
       $('#myModal').modal('hide')
     })
   } else {
-    if (validarCampos()) {
-      const evento = {
-        nome_evento: document.getElementById('nome').value,
-        data_evento: document.getElementById('data').value,
+    if (validateField()) {
+      const event = {
+        nome_evento: document.getElementById('name').value,
+        data_evento: document.getElementById('date').value,
       }
-      await axios.post(apiEventos, evento).then(async () => {
-        await gerarTabela(1, true)
+      await axios.post(eventApi, event).then(async () => {
+        await generateTable(1, true)
         $('#myModal').modal('hide')
       })
     }
   }
 }
-editarEvento = async (idx) => {
-  const evento = await axios.get(apiEventos + '/' + idx).then((res) => res.data)
-  let nome = document.getElementById('nome')
-  let data = document.getElementById('data')
-  data.style.display = 'none'
-  nome.value = evento.nome_evento
-  editar = true
-  id = evento.id
+
+eventEdit = async (idx) => {
+  const event = await axios.get(eventApi + '/' + idx).then((res) => res.data)
+  let name = document.getElementById('name')
+  let date = document.getElementById('date')
+  date.style.display = 'none'
+  name.value = event.nome_evento
+  edit = true
+  id = event.id
   $('#myModal').modal('show')
 }
 
-deletarEvento = async () => {
-  await axios.delete(apiEventos + '/' + idDelete)
-  gerarTabela(1, true)
-  fecharModalDelete()
+deleteEvent = async () => {
+  await axios.delete(eventApi + '/' + idDelete)
+  generateTable(1, true)
+  closeModalDelete()
 }
 
 //Util
-const validarCampos = () => {
+const validateField = () => {
   return document.getElementById('form').reportValidity()
 }
 
-const botaoTabela = async (e) => {
-  if (e.target.type == 'button') {
-    const [action, index] = e.target.id.split('-')
-    if (action == 'edit') {
-      editarEvento(index)
-    }
-  }
-}
-
-formataData = (data) => {
-  const dt = new Date(data)
-  //   return dt.toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+dateFormat = (date) => {
+  const dt = new Date(date)
   const options = {
     second: '2-digit',
     minute: '2-digit',
     hour: '2-digit',
     timeZone: 'UTC',
   }
-  return dt.toLocaleDateString('pt-BR', options)
+  const dateFormat = dt.toLocaleDateString('pt-BR', options).split(' ')
+  const hour = dateFormat[1].split(':')[0] + 'H'
+  const min = dateFormat[1].split(':')[1] + 'min'
+  const fullDate = dateFormat[0] + ' ' + hour + min
+
+  return fullDate
 }
-const gerarPagination = (qtd) => {
-  excluirPaginacao()
-  qtdPage = 10
-  qtd = Math.ceil(qtd / 10)
-  if (qtd > 1) {
-    let primeiroValor = document.createElement('li')
-    let novaPaginacao = document.querySelector('#paginacao')
-    primeiroValor.innerHTML = `
+
+// Pagination
+const generatePagination = (qtd) => {
+  deletePagination()
+  amountPage = 10
+  let pages = Math.ceil(amountPage / 10)
+  if (pages > 1) {
+    let firstValue = document.createElement('li')
+    let newPagination = document.querySelector('#pagination')
+    firstValue.innerHTML = `
   <li class="page-item disabled">
               <a class="page-link" href="#" tabindex="-1">Paginação</a>
             </li>
   `
-    novaPaginacao.appendChild(primeiroValor)
+    newPagination.appendChild(firstValue)
     for (let i = 0; i < qtd; i++) {
-      let linha = document.createElement('li')
-      linha.onclick = () => paginacao(i + 1)
-      linha.classList.add('page-item')
-      linha.id = `pag-${i + 1}`
-      linha.innerHTML = `
+      let line = document.createElement('li')
+      line.onclick = () => pagination(i + 1)
+      line.classList.add('page-item')
+      line.id = `pag-${i + 1}`
+      line.innerHTML = `
     <a class="page-link" >${i + 1}</a>
     `
-      if (i == 0) linha.classList.add('active')
-      novaPaginacao.appendChild(linha)
+      if (i == 0) line.classList.add('active')
+      newPagination.appendChild(line)
     }
   }
 }
 
-paginacao = (e) => {
-  const pesquisa = document.getElementById('pesquisa').value
-  let pagina = document.getElementById(`pag-${e}`)
-  const ativado = document.querySelectorAll('.active')
-  ativado.forEach((el) => el.classList.remove('active'))
-  pagina.classList.add('active')
-  if (pesquisa) {
-    gerarTabela(e, true, pesquisa)
+pagination = (e) => {
+  const search = document.getElementById('search').value
+  let page = document.getElementById(`pag-${e}`)
+  const actived = document.querySelectorAll('.active')
+  actived.forEach((el) => el.classList.remove('active'))
+  page.classList.add('active')
+  if (search) {
+    generateTable(e, true, search)
   } else {
-    gerarTabela(e)
+    generateTable(e)
   }
 }
-excluirPaginacao = () => {
-  const div = document.querySelector('#paginacao')
+
+deletePagination = () => {
+  const div = document.querySelector('#pagination')
   div.innerHTML = ''
 }
 
-pesquisar = () => {
-  const pesquisa = document.getElementById('pesquisa').value
-  gerarTabela(1, true, pesquisa)
+//Search
+search = () => {
+  const search = document.getElementById('search').value
+  generateTable(1, true, search)
 }
 
-abrirModalDelete = (id) => {
+//Modal Delete
+openModalDelete = (id) => {
   idDelete = id
   $('#modal-delete').modal('show')
 }
 
-fecharModalDelete = () => {
+closeModalDelete = () => {
   $('#modal-delete').modal('hide')
 }
 
-// Eventos
-document.getElementById('salvar').addEventListener('click', salvarEvento)
-
-document.querySelector('#eventos>tbody').addEventListener('click', botaoTabela)
-
-document
-  .querySelector('#cancelar-delete')
-  .addEventListener('click', fecharModalDelete)
-
-document
-  .querySelector('#continuar-delete')
-  .addEventListener('click', deletarEvento)
-
 //Modal Edit / Create
-
 $('#myModal').on('hidden.bs.modal', function (e) {
-  const campos = document.querySelectorAll('.modal-field')
-  let data = document.getElementById('data')
-  data.style.removeProperty('display')
-  campos.forEach((campo) => (campo.value = ''))
-  editar = false
+  const fields = document.querySelectorAll('.modal-field')
+  let date = document.getElementById('date')
+  date.style.removeProperty('display')
+  fields.forEach((field) => (field.value = ''))
+  edit = false
   id = null
 })
 $('#myModal').on('shown.bs.modal', function (e) {
-  const titulo = document.getElementById('exampleModalLabel')
-  if (editar) {
-    titulo.innerHTML = 'Editar nome do Evento'
+  const title = document.getElementById('ModalCreateOrEdit')
+  if (edit) {
+    title.innerHTML = 'Editar Nome do Evento'
   } else {
-    titulo.innerHTML = 'Inserir Evento'
+    title.innerHTML = 'Inserir Evento'
   }
 })
 
-//Gerenciar Participantes
-const select = document.getElementById('contatos')
+// Events HTML
+document.getElementById('save').addEventListener('click', saveEvent)
 
-buscarEvento = async (id) => {
-  return await axios.get(apiEventos + '/' + id).then((res) => res.data)
-}
+document
+  .querySelector('#cancelar-delete')
+  .addEventListener('click', closeModalDelete)
 
-gerenciarParticipantes = async (id) => {
-  const evento = await buscarEvento(id)
-  const contatos = await axios.get(apiContatos).then((res) => res.data)
-  listaContatos = contatos
-  participantes = evento.contatos || []
+document
+  .querySelector('#continuar-delete')
+  .addEventListener('click', deleteEvent)
+
+//participants manager
+const select = document.getElementById('contacts')
+
+participantsManager = async (id) => {
+  const event = await getEvent(id)
+  const contacts = await axios.get(contactApi).then((res) => res.data)
+  contactList = contacts
+  participants = event.contatos || []
+  tableContact()
   idEdit = id
-  contatos.forEach(criarOption)
-  evento.contatos.forEach(criarLinhaContato)
-  const titulo = document.getElementById('tituloModalContatos')
-  titulo.innerHTML = `Evento: ${evento.nome_evento}`
-  $('#modal-contato').modal('show')
+  contacts.forEach(createOption)
+  event.contatos.forEach(createContactLine)
+  const title = document.getElementById('title-modal-contact')
+  title.innerHTML = `Evento: ${event.nome_evento}`
+  $('#contact-modal').modal('show')
 }
 
-excluirContatoLista = (id) => {
-  participantes = participantes.filter((el) => el.id != id)
-  zerarTabelaContato()
-  participantes.forEach(criarLinhaContato)
+deleteContactList = (id) => {
+  participants = participants.filter((el) => el.id != id)
+  resetContactTable()
+  participants.forEach(createContactLine)
+  tableContact()
 }
 
-salvarEdicaoEventos = async () => {
-  const contatos = participantes.map((el) => el.id)
-  console.log(contatos)
-  const evento = await buscarEvento(idEdit)
-  evento.contatos = contatos
-  await axios.put(apiEventos + '/' + idEdit, evento).then(() => {
-    $('#modal-contato').modal('hide')
+saveEventEdit = async () => {
+  const contacts = participants.map((el) => el.id)
+  const event = await getEvent(idEdit)
+  event.contatos = contacts
+  await axios.put(eventApi + '/' + idEdit, event).then(() => {
+    $('#contact-modal').modal('hide')
   })
 }
 
-criarOption = (contato) => {
+createOption = (contact) => {
+  const optionDefault = document.getElementById('optionDefault')
+  const existsDefault = document.body.contains(optionDefault)
+  if (!existsDefault) {
+    optionDefaultCreate = document.createElement('option')
+    optionDefaultCreate.id = 'optionDefault'
+    optionDefaultCreate.setAttribute('value', '')
+    optionDefaultCreate.innerHTML = 'Selecione um contato'
+    document.querySelector('#contacts').appendChild(optionDefaultCreate)
+  }
   const option = document.createElement('option')
-  option.value = contato.id
-  option.innerHTML = contato.nome
-  document.querySelector('#contatos').appendChild(option)
+  option.value = contact.id
+  option.innerHTML = contact.nome
+  document.querySelector('#contacts').appendChild(option)
 }
 
-const limparOptions = () => {
-  const linhas = document.querySelectorAll('#contatos>option')
-  linhas.forEach((linha) => linha.parentNode.removeChild(linha))
+tableContact = () => {
+  const div = document.getElementById('contacts-div')
+  const p = document.getElementById('not-contact')
+  const table = document.getElementById('event-contacts')
+  const existsTable = document.body.contains(table)
+  const existsP = document.body.contains(p)
+  if (!participants.length && !existsP) {
+    if (existsTable) table.remove()
+    const p = document.createElement('h4')
+    p.classList.add('text-center')
+    p.innerHTML = 'Nenhum contato cadastrado'
+    p.id = 'not-contact'
+    div.appendChild(p)
+  } else if (participants.length && !existsTable) {
+    if (existsP) p.remove()
+    const table = document.createElement('table')
+    table.classList.add(
+      'table',
+      'table-striped',
+      'table-bordered',
+      'mydatatable',
+      'contact-table'
+    )
+    table.id = 'event-contacts'
+    table.innerHTML = `<thead>
+                      <tr>
+                        <th width="100%">Nome</th>
+                        <th>Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>`
+    div.appendChild(table)
+  }
 }
 
-criarLinhaContato = (contato) => {
-  const novaLinha = document.createElement('tr')
-  novaLinha.innerHTML = `
-        <td>${contato.nome}</td>
+createContactLine = (contact) => {
+  tableContact()
+  const newLine = document.createElement('tr')
+  newLine.innerHTML = `
+        <td>${contact.nome}</td>
         <td id="button-action">                             
-            <button type="button" class="btn btn-exclude" id="delete-${contato.id}" title="Excluir Contato" onClick=excluirContatoLista(${contato.id})><i class="bi bi-trash"></i></button>          
+            <button type="button" class="btn btn-exclude" id="delete-${contact.id}" title="Excluir Contato" onClick=deleteContactList(${contact.id})><i class="bi bi-trash"></i></button>          
         </td>
     `
-  document.querySelector('#contatosEventos>tbody').appendChild(novaLinha)
+  document.querySelector('#event-contacts>tbody').appendChild(newLine)
 }
 
-zerarTabelaContato = () => {
-  const linhas = document.querySelector('#contatosEventos>tbody')
-  linhas.innerHTML = ''
+resetContactTable = () => {
+  const lines = document.querySelector('#event-contacts>tbody')
+  if (lines) lines.innerHTML = ''
 }
 
 select.addEventListener('change', function handleChange(event) {
+  if (!event.target.value) return
   const id = event.target.value
-  const nome = select.options[select.selectedIndex].text
-  const existe = participantes.findIndex((el) => el.id == id) > -1
-  if (existe) {
-    setTimeout(() => fecharAlerta(), 5000)
-    return mostrarAlerta(`Participante ${nome} já está na lista`)
+  const name = select.options[select.selectedIndex].text
+  const exists = participants.findIndex((el) => el.id == id) > -1
+  if (exists) {
+    setTimeout(() => closeAlert(), 5000)
+    return showAlert(`Participante ${name} já está na lista`)
   }
 
-  const dado = listaContatos.filter((el) => el.id == id)[0]
-  criarLinhaContato(dado)
-  participantes.push(dado)
+  const data = contactList.filter((el) => el.id == id)[0]
+  participants.push(data)
+  createContactLine(data)
 })
 
 //Modal Delete
@@ -294,17 +387,17 @@ $('#modal-delete').on('hidden.bs.modal', function (e) {
   idDelete = null
 })
 
-//Modal Contato Eventos
-$('#modal-contato').on('hidden.bs.modal', function (e) {
-  $('#contatos').html('')
-  listaContatos = []
-  participantes = []
+//Modal Contact Event
+$('#contact-modal').on('hidden.bs.modal', function (e) {
+  $('#contacts').html('')
+  contactList = []
+  participants = []
   idEdit = null
-  zerarTabelaContato()
+  resetContactTable()
 })
 
 //alert
-fecharAlerta = () => {
+closeAlert = () => {
   const div = document.getElementById('alert')
   div.removeAttribute('role')
   div.classList.remove(
@@ -317,7 +410,7 @@ fecharAlerta = () => {
   div.innerHTML = ''
 }
 
-mostrarAlerta = (msg) => {
+showAlert = (msg) => {
   const div = document.getElementById('alert')
   div.setAttribute('role', 'alert')
   div.classList.add('alert', 'alert-danger', 'alert-dismissibl', 'fade', 'show')
@@ -325,4 +418,4 @@ mostrarAlerta = (msg) => {
 }
 
 //Executaveis
-gerarTabela(1, true)
+generateTable(1, true)
