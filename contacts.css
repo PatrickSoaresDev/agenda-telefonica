@@ -1,0 +1,27 @@
+.nav {
+  font-size: 1.5em;
+}
+.navbar-brand {
+  font-size: 1.5em;
+}
+
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+#contatos {
+  font-size: 1.1em;
+}
+
+.btn-edit {
+  background-color: #e5e58d;
+}
+
+.btn-exclude {
+  background-color: #ff6e6e;
+  color: #000;
+}
