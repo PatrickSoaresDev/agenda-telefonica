@@ -1,0 +1,31 @@
+.nav {
+  font-size: 1.5em;
+}
+.navbar-brand {
+  font-size: 1.5em;
+}
+
+.btn-custom {
+  background-color: #949491;
+}
+
+.btn-edit {
+  background-color: #e5e58d;
+}
+
+.btn-exclude {
+  background-color: #ff6e6e;
+  color: #000;
+}
+
+.search {
+  max-width: 20em;
+}
+
+.active a {
+  background-color: #4a4a4a !important;
+}
+
+#events {
+  font-size: 1.1em;
+}

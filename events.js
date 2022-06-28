@@ -8,8 +8,12 @@ let idEdit = null
 events = []
 
 // api comunication
-const eventApi = 'http://localhost:3000/eventos'
-const contactApi = 'http://localhost:3000/contatos'
+const eventApi = 'http://localhost:3000/events'
+const contactApi = 'http://localhost:3000/contacts'
+
+getContactList = async () => {
+  contactList = await axios.get(contactApi).then((res) => res.data)
+}
 
 //table
 const generateTable = async (page, pagination, search) => {
@@ -30,10 +34,10 @@ const clearTable = () => {
 
 const createTable = async () => {
   let div = document.getElementById('table-div')
-  let p_no_table = document.getElementById('p-no-table')
+  let warning = document.getElementById('warning')
   let table = document.getElementById('events')
   if (events.length && !document.body.contains(table)) {
-    if (document.body.contains(p_no_table)) p_no_table.remove()
+    if (document.body.contains(warning)) warning.remove()
     const table = document.createElement('table')
     table.id = 'events'
     table.classList.add(
@@ -58,20 +62,20 @@ const createTable = async () => {
       .addEventListener('click', tableButton)
   } else if (!events.length) {
     if (document.body.contains(table)) table.remove()
-    const p = document.createElement('p')
-    p.id = 'p-no-table'
-    p.classList.add('p-no-table')
-    p.innerHTML = 'Nenhum evento cadastrado'
-    div.appendChild(p)
+    const warning = document.createElement('h3')
+    warning.classList.add('text-center', 'mt-5')
+    warning.innerHTML = 'Nenhum evento cadastrado'
+    warning.id = 'warning'
+    div.appendChild(warning)
   } else return
 }
 
 createNewLineTable = (event) => {
   const newLine = document.createElement('tr')
   newLine.innerHTML = `
-        <td>${event.nome_evento}</td>
-        <td>${dateFormat(event.data_evento)}</td>
-        <td id="button-action">
+        <td>${event.name}</td>
+        <td>${dateFormat(event.date)}</td>
+        <td class="d-flex justify-content-around">
             <button class="btn btn-custom" title="Participantes" onClick="participantsManager(${
               event.id
             })"><i class="bi bi-person-plus-fill"></i></button>      
@@ -105,7 +109,7 @@ getEvent = async (id) => {
 }
 
 getEvents = async (page, search) => {
-  let limit = 10
+  const limit = 10
   return await axios
     .get(eventApi + '/pagination', { params: { limit, page, search } })
     .then((res) => {
@@ -118,16 +122,17 @@ getEvents = async (page, search) => {
 
 const saveEvent = async () => {
   if (edit) {
-    let event = { nome_evento: document.getElementById('name').value }
+    let event = { name: document.getElementById('name').value }
     await axios.put(eventApi + '/' + id, event).then(async () => {
+      console.log('teste')
       await generateTable(1, true)
       $('#myModal').modal('hide')
     })
   } else {
     if (validateField()) {
       const event = {
-        nome_evento: document.getElementById('name').value,
-        data_evento: document.getElementById('date').value,
+        name: document.getElementById('name').value,
+        date: document.getElementById('date').value,
       }
       await axios.post(eventApi, event).then(async () => {
         await generateTable(1, true)
@@ -142,7 +147,7 @@ eventEdit = async (idx) => {
   let name = document.getElementById('name')
   let date = document.getElementById('date')
   date.style.display = 'none'
-  name.value = event.nome_evento
+  name.value = event.name
   edit = true
   id = event.id
   $('#myModal').modal('show')
@@ -179,7 +184,7 @@ dateFormat = (date) => {
 const generatePagination = (qtd) => {
   deletePagination()
   amountPage = 10
-  let pages = Math.ceil(amountPage / 10)
+  let pages = Math.ceil(qtd / amountPage)
   if (pages > 1) {
     let firstValue = document.createElement('li')
     let newPagination = document.querySelector('#pagination')
@@ -189,7 +194,7 @@ const generatePagination = (qtd) => {
             </li>
   `
     newPagination.appendChild(firstValue)
-    for (let i = 0; i < qtd; i++) {
+    for (let i = 0; i < pages; i++) {
       let line = document.createElement('li')
       line.onclick = () => pagination(i + 1)
       line.classList.add('page-item')
@@ -272,14 +277,17 @@ const select = document.getElementById('contacts')
 participantsManager = async (id) => {
   const event = await getEvent(id)
   const contacts = await axios.get(contactApi).then((res) => res.data)
-  contactList = contacts
-  participants = event.contatos || []
+  if (!contacts.length) {
+    createOption()
+  } else {
+    contacts.forEach(createOption)
+  }
+  participants = event.contacts || []
   tableContact()
   idEdit = id
-  contacts.forEach(createOption)
-  event.contatos.forEach(createContactLine)
+  event.contacts.forEach(createContactLine)
   const title = document.getElementById('title-modal-contact')
-  title.innerHTML = `Evento: ${event.nome_evento}`
+  title.innerHTML = `Evento: ${event.name}`
   $('#contact-modal').modal('show')
 }
 
@@ -293,7 +301,7 @@ deleteContactList = (id) => {
 saveEventEdit = async () => {
   const contacts = participants.map((el) => el.id)
   const event = await getEvent(idEdit)
-  event.contatos = contacts
+  event.contacts = contacts
   await axios.put(eventApi + '/' + idEdit, event).then(() => {
     $('#contact-modal').modal('hide')
   })
@@ -302,17 +310,24 @@ saveEventEdit = async () => {
 createOption = (contact) => {
   const optionDefault = document.getElementById('optionDefault')
   const existsDefault = document.body.contains(optionDefault)
-  if (!existsDefault) {
-    optionDefaultCreate = document.createElement('option')
-    optionDefaultCreate.id = 'optionDefault'
-    optionDefaultCreate.setAttribute('value', '')
-    optionDefaultCreate.innerHTML = 'Selecione um contato'
-    document.querySelector('#contacts').appendChild(optionDefaultCreate)
+  if (!contact) {
+    optionNotContact = document.createElement('option')
+    optionNotContact.setAttribute('value', '')
+    optionNotContact.innerHTML = 'Nenhum contato cadastrado'
+    document.querySelector('#contacts').appendChild(optionNotContact)
+  } else {
+    if (!existsDefault) {
+      optionDefaultCreate = document.createElement('option')
+      optionDefaultCreate.id = 'optionDefault'
+      optionDefaultCreate.setAttribute('value', '')
+      optionDefaultCreate.innerHTML = 'Selecione um contato'
+      document.querySelector('#contacts').appendChild(optionDefaultCreate)
+    }
+    const option = document.createElement('option')
+    option.value = contact.id
+    option.innerHTML = contact.name
+    document.querySelector('#contacts').appendChild(option)
   }
-  const option = document.createElement('option')
-  option.value = contact.id
-  option.innerHTML = contact.nome
-  document.querySelector('#contacts').appendChild(option)
 }
 
 tableContact = () => {
@@ -324,8 +339,8 @@ tableContact = () => {
   if (!participants.length && !existsP) {
     if (existsTable) table.remove()
     const p = document.createElement('h4')
-    p.classList.add('text-center')
-    p.innerHTML = 'Nenhum contato cadastrado'
+    p.classList.add('text-center', 'mt-4')
+    p.innerHTML = 'Nenhum contato no evento'
     p.id = 'not-contact'
     div.appendChild(p)
   } else if (participants.length && !existsTable) {
@@ -351,11 +366,12 @@ tableContact = () => {
 }
 
 createContactLine = (contact) => {
+  console.log(contact)
   tableContact()
   const newLine = document.createElement('tr')
   newLine.innerHTML = `
-        <td>${contact.nome}</td>
-        <td id="button-action">                             
+        <td>${contact.name}</td>
+        <td class="d-flex justify-content-around">                             
             <button type="button" class="btn btn-exclude" id="delete-${contact.id}" title="Excluir Contato" onClick=deleteContactList(${contact.id})><i class="bi bi-trash"></i></button>          
         </td>
     `
@@ -371,6 +387,7 @@ select.addEventListener('change', function handleChange(event) {
   if (!event.target.value) return
   const id = event.target.value
   const name = select.options[select.selectedIndex].text
+  console.log(id)
   const exists = participants.findIndex((el) => el.id == id) > -1
   if (exists) {
     setTimeout(() => closeAlert(), 5000)
@@ -378,6 +395,7 @@ select.addEventListener('change', function handleChange(event) {
   }
 
   const data = contactList.filter((el) => el.id == id)[0]
+  console.log(data)
   participants.push(data)
   createContactLine(data)
 })
@@ -418,4 +436,5 @@ showAlert = (msg) => {
 }
 
 //Executaveis
+getContactList()
 generateTable(1, true)
